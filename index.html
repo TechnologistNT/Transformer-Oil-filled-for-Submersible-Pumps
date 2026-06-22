@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Справочник по подбору СУ, ТМПН и отпайке</title>
+    <style>
+        :root {
+            --bg-primary: #f5f5f7;
+            --bg-card: #ffffff;
+            --bg-input: #f5f5f7;
+            --text-primary: #1d1d1f;
+            --text-secondary: #6e6e73;
+            --border-color: #d2d2d7;
+            --accent: #0071e3;
+            --green: #34c759;
+            --radius: 16px;
+            --shadow: 0 2px 16px rgba(0,0,0,0.06);
+            --transition: 0.25s ease;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif; background: var(--bg-primary); color: var(--text-primary); padding: 20px; -webkit-font-smoothing: antialiased; }
+        .container { max-width: 1280px; margin: 0 auto; }
+        .app-header { text-align:center; padding:28px 0 20px; border-bottom:1px solid var(--border-color); margin-bottom:24px; }
+        .app-header h1 { font-size:2.4rem; font-weight:700; letter-spacing:-0.035em; background:linear-gradient(180deg,#1d1d1f 40%,#6e6e73 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+        .card { background:var(--bg-card); border-radius:var(--radius); padding:22px 26px; margin-bottom:22px; box-shadow:var(--shadow); border:1px solid #e5e5ea; }
+        .card-header { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid #e5e5ea; }
+        .card-header h2 { font-size:1.2rem; font-weight:600; letter-spacing:-0.02em; }
+        .badge { background:var(--bg-input); color:var(--text-secondary); font-size:0.6rem; font-weight:500; padding:3px 14px; border-radius:40px; border:1px solid var(--border-color); }
+        .form-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr)); gap:12px 18px; margin-bottom:12px; }
+        .input-group { display:flex; flex-direction:column; gap:2px; }
+        .input-group label { font-size:0.55rem; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-secondary); }
+        .input-group input, .input-group select { background:var(--bg-input); border:1px solid var(--border-color); border-radius:12px; padding:7px 12px; font-size:0.85rem; color:var(--text-primary); transition:var(--transition); font-family:inherit; width:100%; -webkit-appearance:none; }
+        .input-group input:focus, .input-group select:focus { outline:none; border-color:var(--accent); background:#fff; box-shadow:0 0 0 3px rgba(0,113,227,0.12); }
+        .field-hint { font-size:0.5rem; color:var(--text-secondary); padding-left:4px; border-left:2px solid var(--border-color); margin-top:1px; }
+        .section-divider { font-weight:600; color:var(--text-secondary); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid var(--border-color); padding-bottom:4px; margin:6px 0 10px 0; }
+        .result-area { background:var(--bg-input); border-radius:14px; padding:12px 16px; margin-top:6px; border-left:4px solid var(--accent); }
+        .result-row { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:4px 10px; padding:2px 0; }
+        .result-label { font-weight:500; color:var(--text-primary); font-size:0.75rem; }
+        .result-value { font-family:"SF Mono","Menlo",monospace; font-weight:600; font-size:0.85rem; color:var(--accent); background:#fff; padding:2px 14px; border-radius:30px; border:1px solid #e5e5ea; text-align:right; min-width:70px; white-space:pre-wrap; word-break:break-word; }
+        .btn { background:var(--bg-input); border:1px solid var(--border-color); padding:5px 18px; border-radius:30px; font-size:0.7rem; font-weight:500; cursor:pointer; transition:var(--transition); font-family:inherit; }
+        .btn:hover { background:#e5e5ea; }
+        .btn-success { background:var(--green); color:#fff; border-color:var(--green); }
+        .btn-success:hover { background:#28a745; }
+        .table-wrap { overflow-x:auto; margin-top:10px; }
+        table { width:100%; border-collapse:collapse; font-size:0.75rem; }
+        table th { background:var(--accent); color:#fff; padding:8px 10px; text-align:center; font-weight:600; white-space:nowrap; }
+        table td { padding:6px 10px; border-bottom:1px solid #e5e5ea; text-align:center; }
+        table tr:hover td { background:#f0f4ff; }
+        .badge-type { display:inline-block; padding:1px 10px; border-radius:12px; font-size:0.6rem; font-weight:600; }
+        .badge-universal { background:#d4edda; color:#155724; }
+        .badge-async { background:#cce5ff; color:#004085; }
+        .badge-vent { background:#f8d7da; color:#721c24; }
+        .status-msg { padding:12px 16px; border-radius:12px; margin-top:10px; font-size:0.8rem; border-left:4px solid #ff9f0a; background:#fff8e1; color:#856404; }
+        .status-msg.success { background:#d4edda; color:#155724; border-color:var(--green); }
+        @media (max-width:700px) { body { padding:12px; } .app-header h1 { font-size:1.8rem; } .card { padding:16px; } .form-grid { grid-template-columns:1fr; } .result-row { flex-direction:column; align-items:flex-start; } .result-value { text-align:left; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header class="app-header">
+        <h1>Справочник по подбору СУ, ТМПН и отпайке</h1>
+    </header>
+
+    <!-- ===== ОСНОВНАЯ КАРТОЧКА (подбор + расчёт) ===== -->
+    <div class="card">
+        <div class="card-header">
+            <h2>🔍 Подбор станции управления и расчёт отпайки</h2>
+            <span class="badge">все в одном</span>
+        </div>
+
+        <!-- Параметры ПЭД -->
+        <div class="section-divider">📌 Параметры ПЭД</div>
+        <div class="form-grid">
+            <div class="input-group"><label>Ток ПЭД, А</label><input type="number" id="searchCurrent" value="42" step="1" min="1"><span class="field-hint">Номинальный ток</span></div>
+            <div class="input-group"><label>Напряжение ПЭД, В</label><input type="number" id="searchVoltagePed" value="2000" step="50" min="100"><span class="field-hint">Паспортное напряжение</span></div>
+            <div class="input-group"><label>Тип двигателя (подбор СУ)</label><select id="searchType"><option value="Универсальный">Универсальный</option><option value="Асинхронный">Асинхронный</option><option value="Вентильный">Вентильный</option></select></div>
+            <div class="input-group"><label>Производитель</label><select id="searchManufacturer"><option value="Все">Все</option><option value="Электон">Электон</option><option value="Триол">Триол</option><option value="ПК Борец">ПК Борец</option><option value="ГК Новомет">ГК Новомет</option><option value="НПО Эталон">НПО Эталон</option></select></div>
+            <div class="input-group"><label>Напряжение сети, В</label><input type="number" id="searchVoltage" value="380" step="10" min="220"><span class="field-hint">Обычно 380 В</span></div>
+        </div>
+
+        <!-- Кабель и отпайка -->
+        <div class="section-divider">🔌 Кабель и отпайка</div>
+        <div class="form-grid">
+            <div class="input-group"><label>Длина кабеля, м</label><input type="number" id="cbl_len" value="2467" step="50"><span class="field-hint">Глубина + запас</span></div>
+            <div class="input-group"><label>Сечение кабеля, мм²</label><select id="cbl_sec"><option value="10">10</option><option value="16" selected>16</option><option value="25">25</option><option value="35">35</option><option value="50">50</option><option value="70">70</option><option value="95">95</option></select><span class="field-hint">По току ПЭД</span></div>
+            <div class="input-group"><label>Частота (ЧРП), Гц</label><input type="number" id="cbl_freq" value="55" step="1"><span class="field-hint">Для расчёта отпайки</span></div>
+            <div class="input-group"><label>Тип ПЭД (отпайка)</label><select id="cbl_motor"><option value="std">Стандартный</option><option value="ved">ВЭД (вентильный)</option></select></div>
+            <div class="input-group"><label>Коэф. для ВЭД</label><input type="number" id="cbl_ved_coeff" value="1.2" step="0.05" min="1.0" max="1.5"><span class="field-hint">1.2 = +20% для вентильных двигателей</span></div>
+        </div>
+
+        <!-- Результаты -->
+        <div id="statusMsg"></div>
+        <div class="result-area" style="margin-top:12px;">
+            <div class="result-row"><span class="result-label">Рекомендуемая СУ</span><span class="result-value" id="resSU">—</span></div>
+            <div class="result-row"><span class="result-label">Номинальный ток СУ</span><span class="result-value" id="resCurrent">—</span></div>
+            <div class="result-row"><span class="result-label">Расчётная мощность</span><span class="result-value" id="resPower">—</span></div>
+            <div class="result-row"><span class="result-label">Рекомендуемый ТМПН</span><span class="result-value" id="resTMPN">—</span></div>
+            <div class="result-row" style="border-top:1px solid var(--border-color); padding-top:6px; margin-top:4px;">
+                <span class="result-label" style="font-size:0.7rem; color:var(--text-secondary);">Потери в кабеле</span>
+                <span class="result-value" id="cbl_loss" style="font-size:0.75rem;">—</span>
+            </div>
+            <div class="result-row"><span class="result-label" style="font-size:0.7rem; color:var(--text-secondary);">Отпайка ПП (прямой пуск)</span><span class="result-value" id="cbl_otp_pp" style="font-size:0.75rem;">—</span></div>
+            <div class="result-row"><span class="result-label" style="font-size:0.7rem; color:var(--text-secondary);">Отпайка ЧРП (50 Гц)</span><span class="result-value" id="cbl_otp_chrp_50" style="font-size:0.75rem;">—</span></div>
+            <div class="result-row"><span class="result-label" style="font-size:0.7rem; color:var(--text-secondary);">Отпайка ЧРП (заданная частота)</span><span class="result-value" id="cbl_otp_chrp_freq" style="font-size:0.75rem;">—</span></div>
+            <div class="result-row"><span class="result-label" style="font-size:0.7rem; color:var(--text-secondary);">Отпайка ВЭД (заданная частота)</span><span class="result-value" id="cbl_otp_ved_freq" style="font-size:0.75rem;">—</span></div>
+            <div class="result-row" style="border-top:1px solid var(--border-color); padding-top:6px; margin-top:4px;">
+                <span class="result-label" style="font-size:0.7rem; color:var(--text-secondary);">Настройки СУ (из инструкции)</span>
+                <span class="result-value" id="resSettings" style="font-size:0.75rem; font-weight:400; color:var(--text-primary); text-align:left; min-width:200px; white-space:pre-wrap;">—</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== КАТАЛОГ СУ ===== -->
+    <div class="card">
+        <div class="card-header"><h2>📋 Каталог станций управления</h2><span class="badge" id="totalRecords">0 записей</span></div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr>
+                    <th>Производитель</th>
+                    <th>Серия</th>
+                    <th>Модель</th>
+                    <th>Ток, А</th>
+                    <th>Тип</th>
+                    <th>Напряжение</th>
+                    <th>Защита</th>
+                    <th>Режимы</th>
+                    <th>Фильтр</th>
+                    <th>ШИМ</th>
+                    <th>Интерфейсы</th>
+                    <th>Перегр.</th>
+                    <th>Темп.</th>
+                    <th>Мощн., кВА</th>
+                    <th>ТМПН</th>
+                </tr></thead>
+                <tbody id="catalogBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ===== СПРАВОЧНИК ТМПН ===== -->
+    <div class="card">
+        <div class="card-header"><h2>⚡ Справочник ТМПН</h2><span class="badge">трансформаторы</span></div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Тип ТМПН</th><th>Мощность, кВА</th><th>Напряжение НН, В</th><th>Ток НН, А</th><th>Ступеней</th><th>Рек. для СУ</th></tr></thead>
+                <tbody id="tmpnBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer style="text-align:center; margin-top:32px; padding:16px 0 8px 0; font-size:0.6rem; color:var(--text-secondary); border-top:1px solid var(--border-color);">
+        Справочник по подбору СУ, ТМПН и отпайке · v3.3 · Разработчик: А.И. Носар
+    </footer>
+</div>
+
+<script>
+// ============================================================
+// КОНСТАНТЫ
+// ============================================================
+const MARGIN_V = 30;          // добавка на ЧРП, В
+const COS_PHI = 0.86;
+const EFFICIENCY = 0.9;
+const SAFETY_FACTOR = 1.2;    // запас по мощности ТМПН
+
+// ============================================================
+// СПРАВОЧНИК ТМПН (мощность, кВА, ток НН, А, напряжение, ступени)
+// ============================================================
+const TMPN_REF = [
+    { type: "ТМПН-40/463",   power: 40,  currentNN: 87,  voltageNN: 463,  steps: 5,  recommended: "до 250" },
+    { type: "ТМПН-63/611",   power: 63,  currentNN: 103, voltageNN: 611,  steps: 10, recommended: "до 400" },
+    { type: "ТМПН-100/736",  power: 100, currentNN: 136, voltageNN: 736,  steps: 10, recommended: "до 400" },
+    { type: "ТМПН-160/1090", power: 160, currentNN: 147, voltageNN: 1090, steps: 10, recommended: "до 630" },
+    { type: "ТМПН-250/2247", power: 250, currentNN: 111, voltageNN: 2247, steps: 25, recommended: "до 800" },
+    { type: "ТМПН-400/6",    power: 400, currentNN: 160, voltageNN: 2500, steps: 10, recommended: "до 1000" },
+    { type: "ТМПН-630/6",    power: 630, currentNN: 252, voltageNN: 2500, steps: 10, recommended: "до 1250" },
+    { type: "ТМПН-1000/6",   power: 1000, currentNN: 400, voltageNN: 2500, steps: 10, recommended: "до 1600" },
+    { type: "ТМПН-1600/6",   power: 1600, currentNN: 640, voltageNN: 2500, steps: 10, recommended: "до 2500" }
+];
+
+// ============================================================
+// ДАННЫЕ СПРАВОЧНИКА СУ (полный массив)
+// ============================================================
+const SU_DATA = [
+    // ---------- ЭЛЕКТОН ----------
+    {
+        manufacturer: "Электон",
+        series: "Электон-04",
+        model: "04-250",
+        current: 250,
+        motorType: "Асинхронный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Прямого пуска",
+        sinFilter: "Нет",
+        pwm: "",
+        interfaces: "Нет",
+        overload: 120,
+        minTemp: -60,
+        settings: "Прямой пуск, без ЧРП.\nНастройки не требуются."
+    },
+    {
+        manufacturer: "Электон",
+        series: "Электон-04",
+        model: "04-400",
+        current: 400,
+        motorType: "Асинхронный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Прямого пуска",
+        sinFilter: "Нет",
+        pwm: "",
+        interfaces: "Нет",
+        overload: 120,
+        minTemp: -60,
+        settings: "Прямой пуск, без ЧРП.\nНастройки не требуются."
+    },
+    {
+        manufacturer: "Электон",
+        series: "Электон-04",
+        model: "04-630",
+        current: 630,
+        motorType: "Асинхронный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Прямого пуска",
+        sinFilter: "Нет",
+        pwm: "",
+        interfaces: "Нет",
+        overload: 120,
+        minTemp: -60,
+        settings: "Прямой пуск, без ЧРП.\nНастройки не требуются."
+    },
+    {
+        manufacturer: "Электон",
+        series: "Электон-05",
+        model: "05-250",
+        current: 250,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "USB, LAN (Modbus TCP)",
+        overload: 120,
+        minTemp: -60,
+        settings: "Раздел 6 «Настройки привода»:\n  163. Производитель ВПЭД – выбрать из списка\n  164. Вид типа ВПЭД – выбрать из списка (или ручные настройки)\n  165. Номинальная частота двигателя = паспорт\n  166. Количество пар полюсов = паспорт\n  167. Номинальный ток = паспорт\n  169. Номинальное напряжение = паспорт\n  170. Номинальная мощность = паспорт\n  174. Установка U/F = максимальная рабочая частота\nРаздел 14 «Расчёт отпайки ТМПН» – заполнить все параметры, отпайку выставить ближайшую большую.\nРаздел 5 «Уставки и защиты»:\n  108 Напряжение отпайки ТМПН = установленное на ТМПН\nРаздел 6 (пуск):\n  172 частота пуска: по рекомендации завода; при отсутствии: 4 Гц (для 100 Гц), 6 Гц (для 200 Гц)\n  173 напряжение пуска: по рекомендации; при отсутствии: 30 В (100 Гц), 45 В (200 Гц)"
+    },
+    {
+        manufacturer: "Электон",
+        series: "Электон-05",
+        model: "05-400",
+        current: 400,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "USB, LAN (Modbus TCP)",
+        overload: 120,
+        minTemp: -60,
+        settings: "Аналогично 05-250 (см. выше)."
+    },
+    {
+        manufacturer: "Электон",
+        series: "Электон-05",
+        model: "05-630",
+        current: 630,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "USB, LAN (Modbus TCP)",
+        overload: 120,
+        minTemp: -60,
+        settings: "Аналогично 05-250 (см. выше)."
+    },
+    {
+        manufacturer: "Электон",
+        series: "Электон-06",
+        model: "06-800",
+        current: 800,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 4,
+        interfaces: "USB, LAN (Modbus TCP)",
+        overload: 120,
+        minTemp: -60,
+        settings: "Настройки аналогичны Электон-05.\nЧастота ШИМ = 4 кГц (для токов >800А)."
+    },
+    {
+        manufacturer: "Электон",
+        series: "Электон-06",
+        model: "06-1000",
+        current: 1000,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 4,
+        interfaces: "USB, LAN (Modbus TCP)",
+        overload: 120,
+        minTemp: -60,
+        settings: "Настройки аналогичны Электон-05.\nЧастота ШИМ = 4 кГц."
+    },
+    {
+        manufacturer: "Электон",
+        series: "Электон-06",
+        model: "06-1200",
+        current: 1200,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 4,
+        interfaces: "USB, LAN (Modbus TCP)",
+        overload: 120,
+        minTemp: -60,
+        settings: "Настройки аналогичны Электон-05.\nЧастота ШИМ = 4 кГц."
+    },
+
+    // ---------- ТРИОЛ ----------
+    {
+        manufacturer: "Триол",
+        series: "АК06",
+        model: "АК06-0100",
+        current: 100,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP21",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 8,
+        interfaces: "RS-485, Modbus",
+        overload: 120,
+        minTemp: -40,
+        settings: "Меню «Параметры установки»:\n  Тип привода = вентильный\n  Синусный фильтр = включён\n  Номинальный ток, напряжение, частота – по паспорту\nМеню «Настройки привода → параметры вентильного привода»:\n  Тип ВПЭД = 3000/6000 об/мин (по модели)\n  Задание коэфф. мощности = 0,85 (при колебаниях >2% снижать до 0,6)\n  «Наличие ДТ за СФ» = отключено (пароль 2404)\nМеню «Расчёт отпайки ТМПН»:\n  Глубина спуска, сечение кабеля, температура пласта (90°C)\n  U отпайки – по фактической отпайке для версий <32.35.11\n  Для версий >=32.35.1 – выставить ближайшую большую к рекомендуемой\n  Базовое напряжение = 380 В, базовая частота = Fном × 1,2\nХарактеристика U/F (для ПО <32.35.1):\n  Напряжение точки 4 = 300–330 В\n  Частота пуска: 6 Гц (6000–10000 об/мин), 4 Гц (3000 об/мин, 100 Гц), 2 Гц (3000 об/мин, 50 Гц)\n  Напряжение 1-й точки: 35 В, 25 В, 13 В соответственно\nДля ПО >=32.35.1 – те же частоты, напряжение 35/25/13 В.\nРежим пуска: темп разгона = 2,5 Гц (рекомендуемое)."
+    },
+    {
+        manufacturer: "Триол",
+        series: "АК06",
+        model: "АК06-0200",
+        current: 200,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP21",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 8,
+        interfaces: "RS-485, Modbus",
+        overload: 120,
+        minTemp: -40,
+        settings: "Настройки аналогичны АК06-0100."
+    },
+    {
+        manufacturer: "Триол",
+        series: "АК06",
+        model: "АК06-0400",
+        current: 400,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP21",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 8,
+        interfaces: "RS-485, Modbus",
+        overload: 120,
+        minTemp: -40,
+        settings: "Настройки аналогичны АК06-0100."
+    },
+    {
+        manufacturer: "Триол",
+        series: "АК06",
+        model: "АК06-0800",
+        current: 800,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP21",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 8,
+        interfaces: "RS-485, Modbus",
+        overload: 120,
+        minTemp: -40,
+        settings: "Настройки аналогичны АК06-0100."
+    },
+    {
+        manufacturer: "Триол",
+        series: "АК06",
+        model: "АК06-1600",
+        current: 1600,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP21",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 8,
+        interfaces: "RS-485, Modbus",
+        overload: 120,
+        minTemp: -40,
+        settings: "Настройки аналогичны АК06-0100."
+    },
+    {
+        manufacturer: "Триол",
+        series: "АК06",
+        model: "АК06-2500",
+        current: 2500,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP21",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 8,
+        interfaces: "RS-485, Modbus",
+        overload: 120,
+        minTemp: -40,
+        settings: "Настройки аналогичны АК06-0100."
+    },
+    {
+        manufacturer: "Триол",
+        series: "АК06-АФКУ",
+        model: "АК06-АФКУ-2000",
+        current: 2000,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP21",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 8,
+        interfaces: "RS-485, Modbus",
+        overload: 120,
+        minTemp: -40,
+        settings: "Настройки аналогичны АК06-0100.\nДополнительно: активное фильтрокомпенсирующее устройство (АФКУ) – снижение гармоник до 5%."
+    },
+
+    // ---------- БОРЕЦ ----------
+    {
+        manufacturer: "ПК Борец",
+        series: "Борец-15",
+        model: "15-400",
+        current: 400,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "GSM, RS-485, USB",
+        overload: 120,
+        minTemp: -60,
+        settings: "Версии ПО:\n  КНУ: не ниже 14 литера 6 от 28.03.21\n  КСУ1 (верхний): не ниже 3775.4\n  КСУ2 (нижний): не ниже 18.6\nНастройки в меню «Состав КП»:\n  тип ПЭД = вентильный\n  производитель ПЭД – выбрать из списка\n  выбрать тип двигателя (если нет в списке – ручной ввод)\n  Iном, Uном, Рном, Fном (об/мин) – по паспорту\n  Iхх, COSном – по паспорту\nВ меню «Настройки ПЭД»:\n  Тзаклин = 5 с, Тразгона = 20 с, Ттормож = 20 с\n  Режим пуска = Плавн\n  F ШИМ = 5 кГц, Коммутация = sin\nРасчёт отпайки (меню «Технолог. окна → Расчёт U ТМПН»):\n  заполнить Uном ПЭД, Iном ПЭД, Fном ПЭД (об/мин), Uраб сети (минус 3%), Nмах ПЭД, Lкабеля, сечение, Ткабеля, Uсети=380\n  получить диапазон U2 ТМПН\nРасчёт U/F (меню «Технолог. окна → Расчёт U/F»):\n  Uпэд+Uкаб = расчётное, U2 ТМПН – установить в диапазоне, чтобы Fпуск расч ≤ 10 Гц\n  Fпуск = Fпуск расч, Uпуск = Uпуск расч\nПроверка загрузки СУ:\n  ЗСУ = (IномПЭД × U2ТМПН) / (IномСУ × Uсети) × 100% ≤ 80%"
+    },
+    {
+        manufacturer: "ПК Борец",
+        series: "Борец-15",
+        model: "15-630",
+        current: 630,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "GSM, RS-485, USB",
+        overload: 120,
+        minTemp: -60,
+        settings: "Аналогично 15-400 (см. выше)."
+    },
+    {
+        manufacturer: "ПК Борец",
+        series: "Борец-15",
+        model: "15-800",
+        current: 800,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "GSM, RS-485, USB",
+        overload: 120,
+        minTemp: -60,
+        settings: "Аналогично 15-400 (см. выше)."
+    },
+
+    // ---------- НОВОМЕТ ----------
+    {
+        manufacturer: "ГК Новомет",
+        series: "СУ-05",
+        model: "СУ-05-400",
+        current: 400,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "Modbus, Ethernet",
+        overload: 120,
+        minTemp: -60,
+        settings: "Настройка для вентильного ПЭД в векторном режиме:\n1. В меню «СЕРВИСНОЕ МЕНЮ ЧРП» – сброс уставок по умолчанию.\n2. В окне «ДВИГАТЕЛЬ» ввести все паспортные данные ПЭД.\n3. Переключатель конденсаторов синусного фильтра – в положение «вентильный».\n4. В окне «ТМПН» ввести параметры ТМПН, сети, кабеля, температуру жидкости, макс. рабочее напряжение и частоту.\n5. В окне «ФИЛЬТРЫ» ввести индуктивность и ёмкость выходного фильтра.\n6. КСУ-02 рассчитает рекомендованную отпайку – на ТМПН установить на 10% больше, ввести реальную отпайку.\n7. В окне «НАСТРОЙКИ ЧРП» выбрать тип управления «Векторный», подтип «Мин. ток».\n8. Время разгона до номинальной частоты – 60…90 с.\n9. Запуск.\nПри пуске:\n- 0–2 Гц, срыв синхр. → увеличить «Пусковой коэффициент».\n- 0–2 Гц, МТЗ → уменьшить «Пусковой коэффициент»; если до 0,5 – снизить напряжение 1-й точки U/F до 40 В.\n- 2–15 Гц, МТЗ → снизить напряжение 1-й точки на 5 В.\nВ работе: коэффициент мощности должен быть 0,7…0,95.\nПри резонансе – увеличивать «Коэффициент демпфирования» с шагом 0,01.\nДля оптимизации – изменять «Смещение угла расчета Id» для поиска минимального тока."
+    },
+    {
+        manufacturer: "ГК Новомет",
+        series: "СУ-05",
+        model: "СУ-05-630",
+        current: 630,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "Modbus, Ethernet",
+        overload: 120,
+        minTemp: -60,
+        settings: "Аналогично СУ-05-400 (см. выше)."
+    },
+    {
+        manufacturer: "ГК Новомет",
+        series: "СУ-05",
+        model: "СУ-05-800",
+        current: 800,
+        motorType: "Универсальный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "Modbus, Ethernet",
+        overload: 120,
+        minTemp: -60,
+        settings: "Аналогично СУ-05-400 (см. выше)."
+    },
+
+    // ---------- НПО ЭТАЛОН ----------
+    {
+        manufacturer: "НПО Эталон",
+        series: "СУ ЧР-ВД",
+        model: "СУ ЧР-ВД 160",
+        current: 160,
+        motorType: "Вентильный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "RS-485",
+        overload: 120,
+        minTemp: -60,
+        settings: "Главное меню → 2 Уставки и защиты → 2.2 Токовые защиты:\n  21 Уставка МТЗ = 1,5\n  22 Защ. по косин. = Да\n  23 Косинус срыва = 0,47\n  24 ЗадКонтрКосинуса = 6\nГлавное меню → 3 Номиналы:\n  01 Тип СУ = вентильный\n  02 Отпайка ТМПН = «Предл. отпайка» + 10-15%\n  03 U ТМПН низкое = 380\n  04 Uноминальн. СУ = 380\n  05 Тип ВПЭД – выбрать из списка или ручные настройки\n  06 Номин. ток ПЭД = паспорт\n  11 L подвеса = глубина спуска + L до ТМПН\n  12 Tпласта = температура пласта\n  13 S кабеля = сечение кабеля\n  14 U ном. ПЭД = паспорт\n  16 Ном ток СУ = номинальный ток СУ\n  17 Кол-во пар полюсов = по паспорту (Борец=2, Новомет=2, Лепсе=3, Ритек=4, Шлюмберже=1)\n  18 L реактора = в зависимости от Iном СУ (160/250А → 100 мкГн; 400/630А → 60 мкГн; 800А → 50 мкГн; 1000/1200/1400А → 40 мкГн; 1600/1800А → 30 мкГн)\nПараметры ЧРП → 4 Параметры ЧРП:\n  4.1 Управл. частотой: 11 Время увеличения F = 60\n  4.2 Реж. пуск/стоп: 02 Останов выбегом = Да, 04 Базовое напряжение = 380, 05 Базовая частота = ном. частота двигателя, 07 Пред. Частота = макс. рабочая частота\n  4.3 Вентильный привод:\n    01 Тип регулятора = Мин. Ток\n    04 Смещение угла = 240\n    05 Коэфф. демпф. = 0,05\n    07 Нижн. предел рег = 25\n    08 Верх. предел рег = 35\n    09 КПР = 50\n    10 Коэфф. хар-ки = 0\n    14 Пуск. Частота = 2\n    15 Ном. Об. ВПЭД = по паспорту (тыс. об/мин)\n    16 Кол-во пар = по паспорту\n    17 Индукт. Обмотки = 20 или из паспорта\n    18 Акт. сопрот. = 1500 или из паспорта\n    21 Коэфф. Проп. = 0,03\n    22 Коэфф. Интег. = 0,007\n    24 Коэфф. Пуска = 1\n    25 L реактора = см. выше (п.18)\n    27 Время старта ВД = 3\n  4.5 Настройки хар-ки: 01 Расчет точек = в норме\n  4.15 Настройки: 06 Частота ШИМ = 5 кГц (для >800А – 4 кГц); 07 Сдвиг контр. = 230 мкс; 08 Сдвиг ТМПН = 50 мкс"
+    },
+    {
+        manufacturer: "НПО Эталон",
+        series: "СУ ЧР-ВД",
+        model: "СУ ЧР-ВД 250",
+        current: 250,
+        motorType: "Вентильный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "RS-485",
+        overload: 120,
+        minTemp: -60,
+        settings: "Настройки аналогичны СУ ЧР-ВД 160 (см. выше)."
+    },
+    {
+        manufacturer: "НПО Эталон",
+        series: "СУ ЧР-ВД",
+        model: "СУ ЧР-ВД 400",
+        current: 400,
+        motorType: "Вентильный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "RS-485",
+        overload: 120,
+        minTemp: -60,
+        settings: "Настройки аналогичны СУ ЧР-ВД 160 (см. выше)."
+    },
+    {
+        manufacturer: "НПО Эталон",
+        series: "СУ ЧР-ВД",
+        model: "СУ ЧР-ВД 630",
+        current: 630,
+        motorType: "Вентильный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "RS-485",
+        overload: 120,
+        minTemp: -60,
+        settings: "Настройки аналогичны СУ ЧР-ВД 160 (см. выше)."
+    },
+    {
+        manufacturer: "НПО Эталон",
+        series: "СУ ЧР-ВД",
+        model: "СУ ЧР-ВД 800",
+        current: 800,
+        motorType: "Вентильный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "RS-485",
+        overload: 120,
+        minTemp: -60,
+        settings: "Настройки аналогичны СУ ЧР-ВД 160 (см. выше)."
+    },
+    {
+        manufacturer: "НПО Эталон",
+        series: "СУ ЧР-ВД",
+        model: "СУ ЧР-ВД 1000",
+        current: 1000,
+        motorType: "Вентильный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "RS-485",
+        overload: 120,
+        minTemp: -60,
+        settings: "Настройки аналогичны СУ ЧР-ВД 160 (см. выше)."
+    },
+    {
+        manufacturer: "НПО Эталон",
+        series: "СУ ЧР-ВД",
+        model: "СУ ЧР-ВД 1200",
+        current: 1200,
+        motorType: "Вентильный",
+        voltage: 380,
+        protection: "IP54",
+        modes: "Векторное / U/f",
+        sinFilter: "Да",
+        pwm: 5,
+        interfaces: "RS-485",
+        overload: 120,
+        minTemp: -60,
+        settings: "Настройки аналогичны СУ ЧР-ВД 160 (см. выше)."
+    }
+];
+
+// ============================================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================================
+function getTMPNByPowerAndCurrent(powerKva, currentA) {
+    const requiredPower = powerKva * SAFETY_FACTOR;
+    for (let item of TMPN_REF) {
+        if (item.power >= requiredPower && item.currentNN >= currentA) {
+            return item.type;
+        }
+    }
+    return TMPN_REF[TMPN_REF.length - 1].type;
+}
+
+function calcPower(current, voltage) {
+    return (voltage * current * 1.732 / 1000) * COS_PHI * EFFICIENCY;
+}
+
+// ============================================================
+// ТАБЛИЦА ПОТЕРЬ В КАБЕЛЕ
+// ============================================================
+const lossTable = {
+    10: [5,6.5,8,10,11.5,13,15,16.5,18,19],
+    16: [3,4,5,6,7,8,9,10,11,12],
+    25: [2,2.5,3.5,4,4.5,5.5,6,7,7.5,9],
+    35: [1.3,2,2.5,3,3.5,4,4.5,5,5.5,6],
+    50: [1.1,1.6,2,2.3,2.7,3,3.4,3.8,4.2,4.6],
+    70: [0.8,1.2,1.5,1.8,2.1,2.4,2.7,3.0,3.3,3.6],
+    95: [0.6,0.9,1.1,1.3,1.6,1.8,2.0,2.2,2.4,2.7]
+};
+const currP = [15,20,25,30,35,40,45,50,55,60];
+
+function getLoss(sec, cur) {
+    let a = lossTable[sec];
+    if (!a) return 0;
+    if (cur <= currP[0]) return a[0];
+    if (cur >= currP[9]) return a[9];
+    for (let i = 0; i < 9; i++) {
+        if (cur >= currP[i] && cur <= currP[i+1]) {
+            let r = (cur - currP[i]) / (currP[i+1] - currP[i]);
+            return a[i] + r * (a[i+1] - a[i]);
+        }
+    }
+    return a[0];
+}
+
+// ============================================================
+// ОСНОВНАЯ ФУНКЦИЯ РАСЧЁТА
+// ============================================================
+function calculateAll() {
+    const reqCurrent = parseFloat(document.getElementById('searchCurrent').value) || 0;
+    const reqVoltagePed = parseFloat(document.getElementById('searchVoltagePed').value) || 2000;
+    const reqType = document.getElementById('searchType').value;
+    const reqManufacturer = document.getElementById('searchManufacturer').value;
+    const reqVoltage = parseFloat(document.getElementById('searchVoltage').value) || 380;
+    const len = parseFloat(document.getElementById('cbl_len').value) || 0;
+    const sec = parseInt(document.getElementById('cbl_sec').value);
+    const freq = parseFloat(document.getElementById('cbl_freq').value) || 50;
+    const motor = document.getElementById('cbl_motor').value;
+    const vedCoeff = parseFloat(document.getElementById('cbl_ved_coeff').value) || 1.2;
+
+    const statusDiv = document.getElementById('statusMsg');
+    statusDiv.innerHTML = '';
+    if (reqCurrent <= 0 || reqVoltagePed <= 0) {
+        statusDiv.innerHTML = '<div class="status-msg error">Введите ток и напряжение ПЭД</div>';
+        return;
+    }
+
+    // ---- ПОДБОР СУ ----
+    let best = null, minDiff = Infinity;
+    for (let item of SU_DATA) {
+        if (item.voltage !== reqVoltage) continue;
+        if (reqType !== 'Универсальный' && item.motorType !== 'Универсальный' && item.motorType !== reqType) continue;
+        if (reqManufacturer !== 'Все' && item.manufacturer !== reqManufacturer) continue;
+        if (item.current >= reqCurrent) {
+            const diff = item.current - reqCurrent;
+            if (diff < minDiff) { minDiff = diff; best = item; }
+        }
+    }
+    if (!best && reqType !== 'Универсальный') {
+        for (let item of SU_DATA) {
+            if (item.voltage !== reqVoltage) continue;
+            if (item.motorType !== 'Универсальный') continue;
+            if (reqManufacturer !== 'Все' && item.manufacturer !== reqManufacturer) continue;
+            if (item.current >= reqCurrent) {
+                const diff = item.current - reqCurrent;
+                if (diff < minDiff) { minDiff = diff; best = item; }
+            }
+        }
+    }
+    if (!best) {
+        statusDiv.innerHTML = '<div class="status-msg error">Не найдено подходящей СУ</div>';
+        document.getElementById('resSU').textContent = '—';
+        document.getElementById('resCurrent').textContent = '—';
+        document.getElementById('resPower').textContent = '—';
+        document.getElementById('resTMPN').textContent = '—';
+        document.getElementById('cbl_loss').textContent = '—';
+        document.getElementById('cbl_otp_pp').textContent = '—';
+        document.getElementById('cbl_otp_chrp_50').textContent = '—';
+        document.getElementById('cbl_otp_chrp_freq').textContent = '—';
+        document.getElementById('cbl_otp_ved_freq').textContent = '—';
+        document.getElementById('resSettings').textContent = '—';
+        return;
+    }
+
+    // ---- РАСЧЁТ МОЩНОСТИ И ТМПН ----
+    const power = calcPower(reqCurrent, reqVoltagePed);
+    const tmpn = getTMPNByPowerAndCurrent(power, reqCurrent);
+
+    // ---- РАСЧЁТ КАБЕЛЯ И ОТПАЙКИ ----
+    const loss = getLoss(sec, reqCurrent);
+    const dU = (len / 100) * loss;
+    const uped = reqVoltagePed;
+    const otp_pp = uped + dU;
+    const otp_chrp_50 = otp_pp + MARGIN_V;
+    const otp_chrp_freq = otp_chrp_50 * (freq / 50);
+    const otp_ved_freq = motor === 'ved' ? otp_chrp_freq * vedCoeff : otp_chrp_freq;
+
+    // ---- ВЫВОД РЕЗУЛЬТАТОВ (С ЕДИНИЦАМИ) ----
+    document.getElementById('resSU').textContent = best.manufacturer + ' ' + best.model;
+    document.getElementById('resCurrent').textContent = best.current + ' А';
+    document.getElementById('resPower').textContent = power.toFixed(1) + ' кВА';
+    document.getElementById('resTMPN').textContent = tmpn;
+    document.getElementById('cbl_loss').innerHTML = dU.toFixed(2) + ' В (' + loss.toFixed(2) + ' В/100м)';
+    document.getElementById('cbl_otp_pp').innerHTML = otp_pp.toFixed(1) + ' В';
+    document.getElementById('cbl_otp_chrp_50').innerHTML = otp_chrp_50.toFixed(1) + ' В';
+    document.getElementById('cbl_otp_chrp_freq').innerHTML = otp_chrp_freq.toFixed(1) + ' В';
+    document.getElementById('cbl_otp_ved_freq').innerHTML = otp_ved_freq.toFixed(1) + ' В';
+    document.getElementById('resSettings').textContent = best.settings || '—';
+    statusDiv.innerHTML = '<div class="status-msg success">✅ Расчёт выполнен</div>';
+}
+
+// ============================================================
+// ОТОБРАЖЕНИЕ КАТАЛОГА И ТМПН
+// ============================================================
+function renderCatalog() {
+    const tbody = document.getElementById('catalogBody');
+    tbody.innerHTML = '';
+    for (let item of SU_DATA) {
+        const tr = document.createElement('tr');
+        const typeBadge = item.motorType === 'Универсальный' ? 'badge-universal' :
+                          item.motorType === 'Асинхронный' ? 'badge-async' : 'badge-vent';
+        const power = calcPower(item.current, 380);
+        const tmpn = getTMPNByPowerAndCurrent(power, item.current);
+        tr.innerHTML = `
+            <td>${item.manufacturer}</td>
+            <td>${item.series}</td>
+            <td><strong>${item.model}</strong></td>
+            <td>${item.current}</td>
+            <td><span class="badge-type ${typeBadge}">${item.motorType}</span></td>
+            <td>${item.voltage}</td>
+            <td>${item.protection}</td>
+            <td>${item.modes}</td>
+            <td>${item.sinFilter}</td>
+            <td>${item.pwm || '—'}</td>
+            <td>${item.interfaces}</td>
+            <td>${item.overload}%</td>
+            <td>${item.minTemp}°C</td>
+            <td>${power.toFixed(1)}</td>
+            <td>${tmpn}</td>
+        `;
+        tbody.appendChild(tr);
+    }
+    document.getElementById('totalRecords').textContent = SU_DATA.length + ' записей';
+}
+
+function renderTMPN() {
+    const tbody = document.getElementById('tmpnBody');
+    tbody.innerHTML = '';
+    for (let item of TMPN_REF) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><strong>${item.type}</strong></td>
+            <td>${item.power}</td>
+            <td>${item.voltageNN}</td>
+            <td>${item.currentNN}</td>
+            <td>${item.steps}</td>
+            <td>${item.recommended}</td>
+        `;
+        tbody.appendChild(tr);
+    }
+}
+
+// ============================================================
+// АВТООБНОВЛЕНИЕ И ИНИЦИАЛИЗАЦИЯ
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    renderCatalog();
+    renderTMPN();
+    calculateAll();
+
+    const fields = [
+        'searchCurrent', 'searchVoltagePed', 'searchType', 'searchManufacturer', 'searchVoltage',
+        'cbl_len', 'cbl_sec', 'cbl_freq', 'cbl_motor', 'cbl_ved_coeff'
+    ];
+    fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', calculateAll);
+            el.addEventListener('change', calculateAll);
+        }
+    });
+});
+</script>
+
+</body>
+</html>
