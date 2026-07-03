@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>СУ · ТМПН · Отпайка v3.2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 /* ── RESET & TOKENS ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,9 +32,38 @@
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
   --mono: 'SF Mono', 'Fira Code', ui-monospace, monospace;
 }
-body { font-family: var(--font); background: var(--bg); color: var(--text-1); -webkit-font-smoothing: antialiased; }
+body { font-family: var(--font); background: var(--bg); color: var(--text-1); -webkit-font-smoothing: antialiased; transition: background var(--tr), color var(--tr); }
 
-/* ── NAV ── */
+/* ── ТЁМНАЯ ТЕМА ── */
+body.dark {
+  --bg:          #1c1c1e;
+  --surface:     #2c2c2e;
+  --surface2:    #3a3a3c;
+  --border:      rgba(255,255,255,0.10);
+  --text-1:      #f5f5f7;
+  --text-2:      #aeaeb2;
+  --text-3:      #6e6e73;
+  --accent:      #0a84ff;
+  --accent-h:    #409cff;
+  --accent-soft: rgba(10,132,255,0.15);
+  --shadow:      0 2px 20px rgba(0,0,0,0.4);
+}
+body.dark .badge.ok   { background: rgba(52,199,89,0.20); color: #4cd964; }
+body.dark .badge.warn { background: rgba(255,149,0,0.20); color: #ff9f0a; }
+body.dark .badge.bad  { background: rgba(255,59,48,0.20); color: #ff453a; }
+body.dark .badge.info { background: rgba(10,132,255,0.20); color: #0a84ff; }
+body.dark .ws-icon.tmpn  { background: #1c3a5f; color: #0a84ff; }
+body.dark .ws-icon.cable { background: #3d2e1a; color: #ff9f0a; }
+body.dark .ws-icon.ped   { background: #2d1b3d; color: #bf5af2; }
+body.dark .ws-icon.pump  { background: #1a3a2a; color: #4cd964; }
+body.dark .su-card.rank-1 { background: linear-gradient(135deg, rgba(255,187,0,0.15) 0%, rgba(255,215,0,0.05) 100%); border-color: #ffbb00; }
+body.dark .su-card.rank-2 { background: linear-gradient(135deg, rgba(170,170,170,0.15) 0%, rgba(200,200,200,0.05) 100%); border-color: #888; }
+body.dark .su-card.rank-3 { background: linear-gradient(135deg, rgba(205,127,50,0.15) 0%, rgba(205,127,50,0.05) 100%); border-color: #cd7f32; }
+body.dark .rh-chip { background: rgba(255,255,255,0.12); }
+body.dark .rh-chip.ok   { background: rgba(52,199,89,0.25); }
+body.dark .rh-chip.warn { background: rgba(255,149,0,0.25); }
+body.dark .rh-chip.bad  { background: rgba(255,59,48,0.25); }
+
 nav {
   position: sticky; top: 0; z-index: 100;
   height: var(--nav-h);
@@ -41,15 +72,19 @@ nav {
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between; padding: 0 24px;
+  transition: background var(--tr), border-color var(--tr);
+}
+body.dark nav {
+  background: rgba(28,28,30,0.82);
 }
 .nav-logo { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; color: var(--text-1); }
 .nav-logo svg { color: var(--accent); }
-.nav-actions { display: flex; gap: 8px; align-items: center; }
+.nav-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .nav-ver { font-size: 11px; font-weight: 500; color: var(--text-3); padding: 3px 8px; background: var(--surface2); border-radius: 20px; }
 .btn-icon {
   border: none; background: var(--surface2); border-radius: 8px; padding: 6px 10px;
   cursor: pointer; color: var(--text-1); font-size: 13px; font-weight: 500;
-  display: flex; align-items: center; gap: 4px; transition: background var(--tr);
+  display: flex; align-items: center; gap: 4px; transition: background var(--tr), color var(--tr);
 }
 .btn-icon:hover { background: var(--border); }
 
@@ -76,7 +111,7 @@ main { max-width: 960px; margin: 0 auto; padding: 28px 20px 40px; }
 .page-desc { font-size: 14px; color: var(--text-2); margin-top: 4px; }
 
 /* ── CARD ── */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; margin-bottom: 14px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px; margin-bottom: 14px; transition: background var(--tr), border-color var(--tr), box-shadow var(--tr); }
 .card-title { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); margin-bottom: 18px; }
 
 /* ── GRID ── */
@@ -97,11 +132,13 @@ input[type=number], select {
   border: 1.5px solid var(--border); border-radius: var(--radius-sm);
   background: var(--bg); color: var(--text-1);
   font: 15px var(--font); outline: none; -webkit-appearance: none;
-  transition: border-color var(--tr), box-shadow var(--tr);
+  transition: border-color var(--tr), box-shadow var(--tr), background var(--tr), color var(--tr);
 }
 input.has-unit { padding-right: 48px; }
 input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); background: #fff; }
+body.dark input:focus, body.dark select:focus { background: #3a3a3c; }
 select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236e6e73' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; padding-right: 32px; cursor: pointer; }
+body.dark select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23aeaeb2' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); }
 
 /* ── DIVIDER ── */
 .div { height: 1px; background: var(--border); margin: 18px 0; }
@@ -119,7 +156,7 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .rval.purple { color: var(--purple); }
 .rval.muted  { color: var(--text-3); font-weight: 400; }
 
-/* ── RESULT CARD (big) ── */
+/* ── RESULT HERO ── */
 .result-hero { background: linear-gradient(135deg, #0071e3 0%, #0040a0 100%); border-radius: var(--radius); padding: 22px; color: #fff; margin-bottom: 14px; }
 .rh-label { font-size: 12px; font-weight: 600; opacity: .7; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px; }
 .rh-main { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
@@ -142,13 +179,14 @@ select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.o
 .seg { display: inline-flex; background: var(--surface2); border-radius: 9px; padding: 3px; gap: 2px; }
 .seg-btn { padding: 6px 14px; border: none; background: none; border-radius: 7px; font: 500 13px var(--font); color: var(--text-2); cursor: pointer; transition: all var(--tr); }
 .seg-btn.active { background: #fff; color: var(--text-1); box-shadow: 0 1px 4px rgba(0,0,0,.10); }
+body.dark .seg-btn.active { background: #3a3a3c; color: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
 
 /* ── FORMULA HINT ── */
 .fhint { display: flex; gap: 10px; background: var(--accent-soft); border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 14px; }
 .fhint svg { flex-shrink:0; color: var(--accent); margin-top:1px; }
 .fhint p { font: 12px/1.55 var(--mono); color: var(--accent); }
 
-/* ── VOLTAGE STEPS (visual отпайки) ── */
+/* ── VOLTAGE STEPS ── */
 .tap-visual { margin-top: 18px; }
 .tv-label { font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
 .tv-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
@@ -168,6 +206,7 @@ th { padding: 10px 14px; text-align: left; font: 600 11px var(--font); letter-sp
 td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-1); white-space: nowrap; }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: rgba(0,113,227,.03); }
+body.dark tr:hover td { background: rgba(10,132,255,0.08); }
 .td-badge { display: inline-flex; }
 .td-mono { font-family: var(--mono); font-size: 12px; }
 .td-bold { font-weight: 600; }
@@ -180,7 +219,7 @@ tr:hover td { background: rgba(0,113,227,.03); }
 .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-3); pointer-events: none; }
 .search-wrap input[type=text] { padding-left: 36px; height: 38px; font-size: 14px; }
 
-/* ── CABLE TABLE (допустимые токи) ── */
+/* ── CABLE TABLE ── */
 .cable-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px,1fr)); gap: 10px; margin-top: 4px; }
 .cable-cell { background: var(--surface2); border-radius: var(--radius-sm); padding: 12px 14px; }
 .cc-sec { font-size: 11px; font-weight: 600; color: var(--text-2); margin-bottom: 4px; }
@@ -188,161 +227,69 @@ tr:hover td { background: rgba(0,113,227,.03); }
 .cc-unit { font-size: 11px; color: var(--text-3); }
 .cc-status { display: block; font-size: 11px; font-weight: 500; margin-top: 4px; }
 
-/* ── MODE ICON GRID ── */
-.mode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-top: 4px; }
+/* ── MODE GRID ── */
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 4px; }
 .mode-card { background: var(--surface2); border-radius: var(--radius-sm); padding: 14px; }
 .mc-icon { font-size: 20px; margin-bottom: 6px; }
 .mc-name { font-size: 13px; font-weight: 600; color: var(--text-1); margin-bottom: 3px; }
 .mc-desc { font-size: 12px; color: var(--text-2); line-height: 1.4; }
 
 /* ── ВИЗУАЛИЗАЦИЯ СКВАЖИНЫ ── */
-.well-scheme-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 20px 16px;
-  margin-bottom: 20px;
-}
-.well-scheme {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0;
-}
-.ws-node {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  min-width: 70px;
-}
-.ws-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  margin-bottom: 6px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
+.well-scheme-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px 16px; margin-bottom: 20px; transition: background var(--tr), border-color var(--tr); }
+.well-scheme { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0; }
+.ws-node { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 70px; }
+.ws-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 .ws-icon.tmpn  { background: #e8f0fe; color: #0071e3; }
 .ws-icon.cable { background: #fff3e0; color: #ff9500; }
 .ws-icon.ped   { background: #f3e8fd; color: #af52de; }
 .ws-icon.pump  { background: #e8f5e9; color: #34c759; }
-.ws-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-1);
-}
-.ws-val {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--text-2);
-  margin-top: 2px;
-  background: var(--surface2);
-  padding: 2px 8px;
-  border-radius: 12px;
-}
-.ws-line {
-  width: 36px;
-  height: 2px;
-  background: var(--border);
-  margin: 0 4px;
-  position: relative;
-  flex-shrink: 0;
-}
-.ws-line::after {
-  content: '';
-  position: absolute;
-  right: -3px;
-  top: -4px;
-  width: 0;
-  height: 0;
-  border-left: 6px solid var(--border);
-  border-top: 5px solid transparent;
-  border-bottom: 5px solid transparent;
-}
+.ws-label { font-size: 12px; font-weight: 600; color: var(--text-1); }
+.ws-val { font-family: var(--mono); font-size: 11px; color: var(--text-2); margin-top: 2px; background: var(--surface2); padding: 2px 8px; border-radius: 12px; }
+.ws-line { width: 36px; height: 2px; background: var(--border); margin: 0 4px; position: relative; flex-shrink: 0; }
+.ws-line::after { content: ''; position: absolute; right: -3px; top: -4px; width: 0; height: 0; border-left: 6px solid var(--border); border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
 
-/* ── SU CARD (топ-3) ── */
-.su-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 14px;
-  margin-top: 12px;
-}
-.su-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  position: relative;
-  transition: box-shadow var(--tr), border-color var(--tr);
-}
+/* ── SU CARD ── */
+.su-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; margin-top: 12px; }
+.su-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; position: relative; transition: box-shadow var(--tr), border-color var(--tr), background var(--tr); }
 .su-card:hover { box-shadow: var(--shadow); }
 .su-card.rank-1 { border-color: #ffbb00; background: linear-gradient(135deg, rgba(255,187,0,0.06) 0%, rgba(255,215,0,0.02) 100%); }
 .su-card.rank-2 { border-color: #aaa; background: linear-gradient(135deg, rgba(170,170,170,0.06) 0%, rgba(200,200,200,0.02) 100%); }
 .su-card.rank-3 { border-color: #cd7f32; background: linear-gradient(135deg, rgba(205,127,50,0.06) 0%, rgba(205,127,50,0.02) 100%); }
-.su-rank-badge {
-  position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  font: 700 13px var(--font);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-}
+.su-rank-badge { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; border-radius: 50%; font: 700 13px var(--font); display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
 .rank-1 .su-rank-badge { background: #ffbb00; color: #000; }
 .rank-2 .su-rank-badge { background: #888; }
 .rank-3 .su-rank-badge { background: #cd7f32; }
-.su-card__vendor {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .05em;
-  color: var(--text-3);
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-.su-card__model {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-1);
-  margin-bottom: 12px;
-}
-.su-card__params {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
+.su-card__vendor { font-size: 11px; font-weight: 700; letter-spacing: .05em; color: var(--text-3); text-transform: uppercase; margin-bottom: 8px; }
+.su-card__model { font-size: 18px; font-weight: 700; color: var(--text-1); margin-bottom: 12px; }
+.su-card__params { display: flex; flex-wrap: wrap; gap: 6px; }
 
-/* ── VALIDATION MESSAGE ── */
-#validation-msg {
-  background: rgba(255,149,0,0.12);
-  border: 1px solid var(--orange);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  margin-bottom: 14px;
-  color: #bf5900;
-  font-size: 13px;
-  display: none;
-}
+/* ── VALIDATION ── */
+#validation-msg { background: rgba(255,149,0,0.12); border: 1px solid var(--orange); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 14px; color: #bf5900; font-size: 13px; display: none; }
 
-/* ── GRAPH CONTAINER ── */
+/* ── GRAPH ── */
 .graph-container { margin-top: 16px; display: flex; flex-direction: column; align-items: center; }
-canvas { max-width: 100%; height: auto; }
+canvas { max-width: 100%; height: auto; background: var(--surface2); border-radius: var(--radius-sm); }
 
-/* ── PRINT STYLES ── */
+/* ── VED CARD ── */
+.ved-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-top: 14px; }
+.ved-card-header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
+.ved-card-header h3 { font-size: 18px; font-weight: 700; margin-right: auto; }
+.ved-params { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ved-param { display: flex; flex-direction: column; }
+.ved-param-label { font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: .05em; }
+.ved-param-val { font-size: 13px; font-weight: 500; color: var(--text-1); font-family: var(--mono); }
+.ved-warn { background: rgba(255,149,0,0.12); border-left: 3px solid var(--orange); padding: 10px 14px; margin-top: 14px; border-radius: 6px; font-size: 13px; color: var(--text-1); }
+
+/* ── QUICK MODE ── */
+.quick-toggle { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.quick-toggle label { font-size: 12px; color: var(--text-2); cursor: pointer; }
+.quick-toggle input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+.quick-hidden { display: none; }
+
+/* ── PRINT / PDF ── */
 @media print {
-  nav, .tab-scroller, .btn-icon, #validation-msg { display: none !important; }
-  body { background: white; }
+  nav, .tab-scroller, .btn-icon, #validation-msg, .quick-toggle, .theme-toggle { display: none !important; }
+  body { background: white; color: black; }
   .card, .well-scheme-card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
   main { max-width: 100%; padding: 0; }
 }
@@ -353,18 +300,7 @@ canvas { max-width: 100%; height: auto; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 /* ── ФУТЕР ── */
-.app-footer {
-  max-width: 960px;
-  margin: 0 auto 40px;
-  padding: 0 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-  color: var(--text-3);
-  flex-wrap: wrap;
-  gap: 8px;
-}
+.app-footer { max-width: 960px; margin: 0 auto 40px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-3); flex-wrap: wrap; gap: 8px; }
 .app-footer span { white-space: nowrap; }
 </style>
 </head>
@@ -376,9 +312,12 @@ canvas { max-width: 100%; height: auto; }
     СУ · ТМПН · Отпайка
   </div>
   <div class="nav-actions">
-    <button class="btn-icon" onclick="window.print()" title="Печать / PDF">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
-      Печать
+    <button class="btn-icon" onclick="exportPDF()" title="Экспорт в PDF">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-4M9 13l3-3 3 3"/></svg>
+      PDF
+    </button>
+    <button class="btn-icon theme-toggle" onclick="toggleTheme()" title="Тёмная тема">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
     </button>
     <span class="nav-ver">v3.2</span>
   </div>
@@ -395,7 +334,7 @@ canvas { max-width: 100%; height: auto; }
   </div>
 </div>
 
-<main>
+<main id="main-content">
 
 <!-- ══════════════ ПОДБОР СУ ══════════════ -->
 <div class="panel active" id="tab-calc">
@@ -403,6 +342,10 @@ canvas { max-width: 100%; height: auto; }
     <div class="eyebrow">Модуль расчёта</div>
     <div class="page-title">Подбор СУ и расчёт отпайки</div>
     <div class="page-desc">Введите параметры ПЭД и кабеля — система подберёт СУ, ТМПН и рассчитает все значения отпайки</div>
+    <div class="quick-toggle">
+      <input type="checkbox" id="quickMode" onchange="toggleQuickMode()">
+      <label for="quickMode">⚡ Быстрый подбор (только ток и напряжение)</label>
+    </div>
   </div>
 
   <div id="validation-msg"></div>
@@ -438,23 +381,23 @@ canvas { max-width: 100%; height: auto; }
   <div class="card">
     <div class="card-title">Параметры ПЭД</div>
     <div class="grid g3">
-      <div class="field"><label>Ток ПЭД (номинальный)</label><div class="iw"><input type="number" id="ped_i" placeholder="0" class="has-unit" oninput="calcAll()"><span class="unit">А</span></div><span class="hint">Паспорт двигателя</span></div>
-      <div class="field"><label>Напряжение ПЭД</label><div class="iw"><input type="number" id="ped_u" placeholder="0" class="has-unit" oninput="calcAll()"><span class="unit">В</span></div><span class="hint">Паспортное значение</span></div>
-      <div class="field"><label>Тип двигателя</label><select id="ped_type" onchange="calcAll()"><option value="uni">Универсальный</option><option value="async">Асинхронный (АД)</option><option value="ved">Вентильный (ВЭД)</option></select></div>
-      <div class="field"><label>Производитель</label><select id="ped_vendor" onchange="calcAll()"><option value="all">Все производители</option><option value="triol">Триол</option><option value="elekton">Электон</option><option value="borets">ПК Борец</option><option value="novomet">ГК Новомет</option><option value="etalon">НПО Эталон</option></select></div>
-      <div class="field"><label>Напряжение сети</label><div class="iw"><input type="number" id="net_u" placeholder="380" class="has-unit" oninput="calcAll()"><span class="unit">В</span></div><span class="hint">Обычно 380 В</span></div>
+      <div class="field"><label>Ток ПЭД (номинальный)</label><div class="iw"><input type="number" id="ped_i" placeholder="0" class="has-unit" oninput="saveState(); calcAll();" onkeydown="if(event.key==='Enter') calcAll();"><span class="unit">А</span></div><span class="hint">Паспорт двигателя</span></div>
+      <div class="field"><label>Напряжение ПЭД</label><div class="iw"><input type="number" id="ped_u" placeholder="0" class="has-unit" oninput="saveState(); calcAll();" onkeydown="if(event.key==='Enter') calcAll();"><span class="unit">В</span></div><span class="hint">Паспортное значение</span></div>
+      <div class="field"><label>Тип двигателя</label><select id="ped_type" onchange="saveState(); calcAll();"><option value="uni">Универсальный</option><option value="async">Асинхронный (АД)</option><option value="ved">Вентильный (ВЭД)</option></select></div>
+      <div class="field quick-hidden"><label>Производитель</label><select id="ped_vendor" onchange="saveState(); calcAll();"><option value="all">Все производители</option><option value="triol">Триол</option><option value="elekton">Электон</option><option value="borets">ПК Борец</option><option value="novomet">ГК Новомет</option><option value="etalon">НПО Эталон</option></select></div>
+      <div class="field"><label>Напряжение сети</label><div class="iw"><input type="number" id="net_u" placeholder="380" class="has-unit" oninput="saveState(); calcAll();" onkeydown="if(event.key==='Enter') calcAll();"><span class="unit">В</span></div><span class="hint">Обычно 380 В</span></div>
     </div>
   </div>
 
-  <div class="card">
+  <div class="card quick-hidden">
     <div class="card-title">Кабель и отпайка</div>
     <div class="grid g3">
-      <div class="field"><label>Длина кабеля</label><div class="iw"><input type="number" id="cab_l" placeholder="0" class="has-unit" oninput="calcAll()"><span class="unit">м</span></div><span class="hint">Глубина спуска + запас ~50м</span></div>
-      <div class="field"><label>Сечение кабеля</label><select id="cab_s" onchange="calcAll()"><option value="10">10 мм²</option><option value="16" selected>16 мм²</option><option value="25">25 мм²</option><option value="35">35 мм²</option><option value="50">50 мм²</option><option value="70">70 мм²</option><option value="95">95 мм²</option></select></div>
-      <div class="field"><label>Частота (ЧРП)</label><div class="iw"><input type="number" id="vfd_f" placeholder="50" class="has-unit" oninput="calcAll()"><span class="unit">Гц</span></div></div>
-      <div class="field"><label>Тип ПЭД (для отпайки)</label><select id="tap_type" onchange="calcAll()"><option value="1">Стандартный АД</option><option value="1.2">ВЭД (+20%)</option></select></div>
-      <div class="field"><label>Тип нагрузки</label><select id="load_type" onchange="calcAll()"><option value="vent">Вентиляторная (ЭЦН, M∝n²)</option><option value="const">Постоянный момент</option></select><span class="hint">💡 Для ЭЦН выберите вентиляторную нагрузку</span></div>
-      <div class="field"><label>Температура пласта</label><div class="iw"><input type="number" id="t_plast" placeholder="25" class="has-unit" oninput="calcAll()"><span class="unit">°C</span></div><span class="hint">Для коррекции допустимого тока кабеля</span></div>
+      <div class="field"><label>Длина кабеля</label><div class="iw"><input type="number" id="cab_l" placeholder="0" class="has-unit" oninput="saveState(); calcAll();" onkeydown="if(event.key==='Enter') calcAll();"><span class="unit">м</span></div><span class="hint">Глубина спуска + запас ~50м</span></div>
+      <div class="field"><label>Сечение кабеля</label><select id="cab_s" onchange="saveState(); calcAll();"><option value="10">10 мм²</option><option value="16" selected>16 мм²</option><option value="25">25 мм²</option><option value="35">35 мм²</option><option value="50">50 мм²</option><option value="70">70 мм²</option><option value="95">95 мм²</option></select></div>
+      <div class="field"><label>Частота (ЧРП)</label><div class="iw"><input type="number" id="vfd_f" placeholder="50" class="has-unit" oninput="saveState(); calcAll();" onkeydown="if(event.key==='Enter') calcAll();"><span class="unit">Гц</span></div></div>
+      <div class="field"><label>Тип ПЭД (для отпайки)</label><select id="tap_type" onchange="saveState(); calcAll();"><option value="1">Стандартный АД</option><option value="1.2">ВЭД (+20%)</option></select></div>
+      <div class="field"><label>Тип нагрузки</label><select id="load_type" onchange="saveState(); calcAll();"><option value="vent">Вентиляторная (ЭЦН, M∝n²)</option><option value="const">Постоянный момент</option></select><span class="hint">💡 Для ЭЦН выберите вентиляторную нагрузку</span></div>
+      <div class="field"><label>Температура пласта</label><div class="iw"><input type="number" id="t_plast" placeholder="25" class="has-unit" oninput="saveState(); calcAll();" onkeydown="if(event.key==='Enter') calcAll();"><span class="unit">°C</span></div><span class="hint">Для коррекции допустимого тока кабеля</span></div>
     </div>
   </div>
 
@@ -544,22 +487,96 @@ canvas { max-width: 100%; height: auto; }
 
 <!-- ══════════════ ТМПН ══════════════ -->
 <div class="panel" id="tab-tmpn">
-  <!-- (содержимое точно как в исходной версии) -->
+  <div class="page-header">
+    <div class="eyebrow">Справочник</div>
+    <div class="page-title">Трансформаторы масляные для погружных насосов</div>
+    <div class="page-desc">Технические характеристики ТМПН</div>
+  </div>
+  <div class="card" style="padding:0; overflow:hidden;">
+    <div class="tbl-wrap" style="border:none; border-radius:0;">
+      <table>
+        <thead><tr><th>Модель</th><th>Мощность, кВА</th><th>Ток, А</th><th>Uвн макс, кВ</th></tr></thead>
+        <tbody>
+          <tr><td>ТМПН-63</td><td>63</td><td>95</td><td>2.5</td></tr>
+          <tr><td>ТМПН-100</td><td>100</td><td>152</td><td>2.5</td></tr>
+          <tr><td>ТМПН-160</td><td>160</td><td>243</td><td>2.5</td></tr>
+          <tr><td>ТМПН-250</td><td>250</td><td>380</td><td>4.0</td></tr>
+          <tr><td>ТМПН-400</td><td>400</td><td>607</td><td>4.0</td></tr>
+          <tr><td>ТМПН-630</td><td>630</td><td>957</td><td>6.0</td></tr>
+          <tr><td>ТМПН-1000</td><td>1000</td><td>1520</td><td>6.0</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Подбор ТМПН по мощности</div>
+    <div class="grid g2">
+      <div class="field"><label>Мощность нагрузки, кВА</label><div class="iw"><input type="number" id="tmpn_power" placeholder="0" class="has-unit" oninput="pickTmpnByPower()"><span class="unit">кВА</span></div></div>
+      <div class="field"><label>Ток нагрузки, А</label><div class="iw"><input type="number" id="tmpn_current" placeholder="0" class="has-unit" oninput="pickTmpnByPower()"><span class="unit">А</span></div></div>
+    </div>
+    <div id="tmpn_result" style="margin-top:12px; font-weight:600; font-size:16px; color:var(--accent);"></div>
+  </div>
 </div>
 
 <!-- ══════════════ КАБЕЛЬ ══════════════ -->
 <div class="panel" id="tab-cable">
-  <!-- (содержимое точно как в исходной версии) -->
+  <div class="page-header">
+    <div class="eyebrow">Расчёт</div>
+    <div class="page-title">Допустимые токи кабеля</div>
+    <div class="page-desc">С учётом температуры окружающей среды</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Параметры</div>
+    <div class="grid g2">
+      <div class="field"><label>Расчётный ток, А</label><div class="iw"><input type="number" id="cb_i" placeholder="0" class="has-unit" oninput="calcCable()"><span class="unit">А</span></div></div>
+      <div class="field"><label>Температурный коэффициент</label><div class="iw"><input type="number" id="cb_t" placeholder="1.0" step="0.01" value="1.0" oninput="calcCable()"><span class="unit">—</span></div><span class="hint">1.0 при 25°C, 0.91 при 35°C, 0.82 при 45°C, 0.71 при 55°C</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Допустимые длительные токи, А</div>
+    <div class="cable-grid" id="cable_grid"></div>
+  </div>
 </div>
 
-<!-- ══════════════ РЕЖИМЫ ══════════════ -->
+<!-- ══════════════ РЕЖИМЫ СУ ══════════════ -->
 <div class="panel" id="tab-modes">
-  <!-- (содержимое точно как в исходной версии) -->
+  <div class="page-header">
+    <div class="eyebrow">Справочник</div>
+    <div class="page-title">Режимы работы станций управления</div>
+    <div class="page-desc">Краткое описание основных режимов</div>
+  </div>
+  <div class="mode-grid">
+    <div class="mode-card"><div class="mc-icon">🔄</div><div class="mc-name">Прямой пуск (ПП)</div><div class="mc-desc">Полное напряжение сети, большой пусковой ток. Для маломощных насосов.</div></div>
+    <div class="mode-card"><div class="mc-icon">📉</div><div class="mc-name">УПП</div><div class="mc-desc">Устройство плавного пуска, снижение пусковых токов и ударов.</div></div>
+    <div class="mode-card"><div class="mc-icon">⚡</div><div class="mc-name">Частотное регулирование (ЧРП)</div><div class="mc-desc">Регулирование скорости насоса, энергосбережение, плавный пуск.</div></div>
+    <div class="mode-card"><div class="mc-icon">🌀</div><div class="mc-name">ВЭД</div><div class="mc-desc">Вентильный электропривод, высокий момент, широкий диапазон регулирования.</div></div>
+    <div class="mode-card"><div class="mc-icon">🔒</div><div class="mc-name">Защита</div><div class="mc-desc">МТЗ, перегрузка, защита от сухого хода, контроль изоляции.</div></div>
+    <div class="mode-card"><div class="mc-icon">📡</div><div class="mc-name">Телеметрия</div><div class="mc-desc">Передача параметров работы (ток, напряжение, температура) на диспетчерский пункт.</div></div>
+  </div>
 </div>
 
 <!-- ══════════════ ПАМЯТКА ВЭД ══════════════ -->
 <div class="panel" id="tab-ved">
-  <!-- (содержимое точно как в исходной версии) -->
+  <div class="page-header">
+    <div class="eyebrow">Инструкция</div>
+    <div class="page-title">Памятка по настройке ВЭД</div>
+    <div class="page-desc">Основные параметры и пароли для разных производителей</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Выберите станцию управления</div>
+    <select id="ved_select" onchange="showVedCard()">
+      <option value="">—</option>
+      <option value="elekton">Электон-05 / Борец-15</option>
+      <option value="novomet05">Новомет СУ-05</option>
+      <option value="novomet03">Новомет СУ-03</option>
+      <option value="triol">Триол / ИРЗ (УМКА)</option>
+      <option value="etalon">Эталон СУ ЧР / НЭК</option>
+      <option value="irz">ИРЗ</option>
+      <option value="orion">Орион-03</option>
+      <option value="borets">Борец-15 (Каскад-НТ)</option>
+    </select>
+  </div>
+  <div id="ved_card_container"></div>
 </div>
 
 </main>
@@ -786,6 +803,83 @@ const VED_MEMO = {
 function v(id) { return parseFloat(document.getElementById(id)?.value) || 0; }
 function fmt(n, u='', d=0) { return isNaN(n)||!isFinite(n)?'—': n.toFixed(d)+(u?' '+u:''); }
 
+// ── LOCAL STORAGE ──
+function saveState() {
+  const fields = ['ped_i','ped_u','ped_type','ped_vendor','net_u','cab_l','cab_s','vfd_f','tap_type','load_type','t_plast','quickMode'];
+  const data = {};
+  fields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) data[id] = el.tagName==='SELECT' ? el.value : el.value;
+  });
+  data['theme'] = document.body.classList.contains('dark') ? 'dark' : 'light';
+  localStorage.setItem('SU_Calc_State', JSON.stringify(data));
+}
+
+function restoreState() {
+  const raw = localStorage.getItem('SU_Calc_State');
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    for (let key in data) {
+      const el = document.getElementById(key);
+      if (el) {
+        if (el.tagName==='SELECT' || el.type==='checkbox') {
+          if (el.type==='checkbox') el.checked = data[key]==='true' || data[key]===true;
+          else el.value = data[key];
+        } else {
+          el.value = data[key];
+        }
+      }
+    }
+    if (data.theme === 'dark') document.body.classList.add('dark');
+    else document.body.classList.remove('dark');
+    // применить режим быстрого подбора
+    toggleQuickMode();
+  } catch(e) {}
+}
+
+// ── ТЁМНАЯ ТЕМА ──
+function toggleTheme() {
+  document.body.classList.toggle('dark');
+  saveState();
+}
+
+// ── БЫСТРЫЙ ПОДБОР ──
+function toggleQuickMode() {
+  const quick = document.getElementById('quickMode').checked;
+  document.querySelectorAll('.quick-hidden').forEach(el => {
+    el.style.display = quick ? 'none' : '';
+  });
+  // При быстром режиме задаём типовые значения для скрытых полей (если они пусты)
+  if (quick) {
+    const defaults = {
+      cab_l: '1000',
+      cab_s: '16',
+      vfd_f: '50',
+      tap_type: '1',
+      load_type: 'vent',
+      t_plast: '25',
+      ped_type: 'async',
+      ped_vendor: 'all'
+    };
+    for (let id in defaults) {
+      const el = document.getElementById(id);
+      if (el && !el.value) {
+        el.value = defaults[id];
+        // если это select, нужно также вызвать change
+        if (el.tagName==='SELECT') {
+          const evt = document.createEvent('HTMLEvents');
+          evt.initEvent('change', false, true);
+          el.dispatchEvent(evt);
+        }
+      }
+    }
+  }
+  saveState();
+  calcAll();
+}
+
+// ── ВАЛИДАЦИЯ ──
 function validateInputs() {
   const msgDiv = document.getElementById('validation-msg');
   const warnings = [];
@@ -812,9 +906,40 @@ function getCableImax(section, tPlast) {
   return Math.round(baseI * kt);
 }
 
-// ══════════════════════════════════
-// ГЛАВНЫЙ РАСЧЁТ
-// ══════════════════════════════════
+// ── ПОДБОР ТМПН ПО МОЩНОСТИ ──
+function pickTmpnByPower() {
+  const P = v('tmpn_power');
+  const I = v('tmpn_current');
+  let result = '';
+  if (P>0 && I>0) {
+    for (let t of TMPN_TABLE) {
+      if (t.s >= P && t.i >= I) {
+        result = `Подходит: ${t.model} (${t.s} кВА, ${t.i} А)`;
+        break;
+      }
+    }
+    if (!result) result = 'Не найдено подходящего ТМПН (возможно, требуется 6/10 кВ)';
+  } else if (P>0) {
+    for (let t of TMPN_TABLE) {
+      if (t.s >= P) {
+        result = `По мощности: ${t.model} (${t.s} кВА)`;
+        break;
+      }
+    }
+    if (!result) result = 'Мощность превышает 1000 кВА — рассмотрите 6/10 кВ';
+  } else if (I>0) {
+    for (let t of TMPN_TABLE) {
+      if (t.i >= I) {
+        result = `По току: ${t.model} (${t.i} А)`;
+        break;
+      }
+    }
+    if (!result) result = 'Ток превышает 1520 А — требуется 6/10 кВ';
+  }
+  document.getElementById('tmpn_result').textContent = result || 'Введите мощность или ток';
+}
+
+// ── ГЛАВНЫЙ РАСЧЁТ ──
 function calcAll() {
   validateInputs();
   const I = v('ped_i'), U = v('ped_u');
@@ -856,6 +981,9 @@ function calcAll() {
   };
   bv('bar_pp', tap_pp); bv('bar_50', tap_50); bv('bar_cf', tap_f); bv('bar_ved', tap_ved);
 
+  // Исправление: ws_tmpn_u теперь показывает расчётное напряжение на отпайке (ПП)
+  document.getElementById('ws_tmpn_u').textContent = Math.round(tap_pp) + ' В';
+
   const iReq = I * 1.15;
   const iSU = SU_STEPS.find(s=>s>=iReq) || SU_STEPS[SU_STEPS.length-1];
   document.getElementById('r_isu').textContent = iSU+' А';
@@ -886,7 +1014,7 @@ function calcAll() {
     document.getElementById('r_tmpn').textContent = selectedTmpn.model + ' (' + selectedTmpn.s + ' кВА)';
   }
 
-  document.getElementById('ws_tmpn_u').textContent = netU + ' В';
+  document.getElementById('ws_tmpn_u').textContent = Math.round(tap_pp) + ' В';
   document.getElementById('ws_cable_info').textContent = S + ' мм² · ' + L + ' м';
   document.getElementById('ws_ped_u').textContent = Math.round(tap_pp) + ' В';
   document.getElementById('ws_pump_hz').textContent = F + ' Гц';
@@ -970,7 +1098,7 @@ function drawUfGraph(fMax, uMax) {
   const w = canvas.width, h = canvas.height;
   ctx.clearRect(0,0,w,h);
   ctx.beginPath();
-  ctx.strokeStyle = '#0071e3';
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#0071e3';
   ctx.lineWidth = 2;
   const fNom = fMax || 50;
   const uNom = uMax || 380;
@@ -987,7 +1115,7 @@ function drawUfGraph(fMax, uMax) {
   ctx.beginPath();
   ctx.moveTo(30,30); ctx.lineTo(30,h-30); ctx.lineTo(w-30,h-30);
   ctx.stroke();
-  ctx.fillStyle = '#333';
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-1').trim() || '#333';
   ctx.font = '10px monospace';
   ctx.fillText('f, Гц', w-40, h-10);
   ctx.fillText('U, В', 5, 20);
@@ -1007,13 +1135,13 @@ function drawPowerGraph(pActive, pFull, loss) {
     const height = val * scale;
     ctx.fillStyle = color;
     ctx.fillRect(x, h-30-height, barWidth, height);
-    ctx.fillStyle = '#333';
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text-1').trim() || '#333';
     ctx.font = '10px monospace';
     ctx.fillText(label, x, h-10);
     ctx.fillText(val.toFixed(1)+' кВт', x, h-30-height-5);
   };
   drawBar(startX, pActive, '#34c759', 'Pакт');
-  drawBar(startX+barWidth+15, pFull, '#0071e3', 'S полн');
+  drawBar(startX+barWidth+15, pFull, getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#0071e3', 'S полн');
   drawBar(startX+2*(barWidth+15), loss, '#ff9500', 'Потери');
 }
 
@@ -1088,9 +1216,40 @@ function showVedCard() {
   container.innerHTML = html;
 }
 
-// Инициализация
+// ── ЭКСПОРТ В PDF ──
+function exportPDF() {
+  const btn = document.querySelector('.btn-icon[onclick="exportPDF()"]');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '⏳ Генерация...';
+  btn.disabled = true;
+
+  html2canvas(document.getElementById('main-content'), {
+    scale: 2,
+    useCORS: true,
+    allowTaint: true,
+    backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#f5f5f7'
+  }).then(canvas => {
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('Расчет_СУ_ТМПН.pdf');
+  }).catch(err => {
+    alert('Ошибка при создании PDF: ' + err);
+  }).finally(() => {
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  });
+}
+
+// ── ИНИЦИАЛИЗАЦИЯ ──
+restoreState();
 filterCatalog();
 calcCable();
+// Первый расчёт, если есть данные
+setTimeout(calcAll, 200);
 </script>
 </body>
 </html>
