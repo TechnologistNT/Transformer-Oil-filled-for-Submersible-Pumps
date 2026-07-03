@@ -3,7 +3,7 @@
 **Модуль подбора станции управления и расчёта отпайки трансформатора для УЭЦН.**  
 Открываешь, вводишь ток и напряжение ПЭД – получаешь готовую рекомендацию по СУ, ТМПН и напряжению на всех ступенях отпаек.
 
-[Открыть модуль](https://technologistNT.github.io/engineering-calculator/tmpn) *(ссылка будет)*
+[Открыть модуль](https://technologistnt.github.io/Transformer-Oil-filled-for-Submersible-Pumps/)
 
 ---
 
